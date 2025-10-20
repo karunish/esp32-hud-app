@@ -51,6 +51,8 @@ class HudForegroundService : Service() {
         return START_STICKY
     }
 
+    //>:)
+
     private fun startHud() {
         val notification = NotificationCompat.Builder(this, "HUD_CHANNEL")
             .setContentTitle("HUD Running")

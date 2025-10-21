@@ -17,14 +17,20 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.widget.Switch
+import android.widget.EditText
+import android.view.View
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var speedText: TextView
     private lateinit var statusText: TextView
     private lateinit var connectButton: Button
+    private lateinit var sendSpeedButton: Button
+    private lateinit var manualSpeedInput: EditText
 
     private val REQUEST_PERMISSIONS = 1001
+    private var isDebugMode = false
 
     private val REQUIRED_PERMISSIONS = mutableListOf(
         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -61,27 +67,19 @@ class MainActivity : AppCompatActivity() {
         speedText = findViewById(R.id.speedText)
         statusText = findViewById(R.id.statusText)
         connectButton = findViewById(R.id.connectButton)
+        manualSpeedInput = findViewById(R.id.manualSpeedInput)
+        sendSpeedButton = findViewById(R.id.sendSpeedButton)
 
         // Notification channel for foreground service
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 "HUD_CHANNEL",
                 "HUD",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_DEFAULT
             )
             channel.description = "ESP32 HUD foreground service"
             val nm = getSystemService(NotificationManager::class.java)
             nm.createNotificationChannel(channel)
-        }
-
-        connectButton.setOnClickListener {
-            val intent = Intent(this, HudForegroundService::class.java)
-            intent.action = "START_HUD"
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                startForegroundService(intent)
-            } else {
-                startService(intent)
-            }
         }
 
         // Prompt user to disable battery optimizations
@@ -91,6 +89,40 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
             intent.data = Uri.parse("package:$pkg")
             startActivity(intent)
+        }
+
+        val debugSwitch = findViewById<Switch>(R.id.debugModeSwitch)
+
+        debugSwitch.setOnCheckedChangeListener { _, checked ->
+            isDebugMode = checked
+            val visibility = if (checked) View.VISIBLE else View.GONE
+            manualSpeedInput.visibility = visibility
+            sendSpeedButton.visibility = visibility
+        }
+
+        connectButton.setOnClickListener {
+            val intent = Intent(this, HudForegroundService::class.java).apply {
+                action = "START_HUD"
+                putExtra("DEBUG_MODE", isDebugMode)
+                if (isDebugMode) {
+                    val fakeSpeed = manualSpeedInput.text.toString().toFloatOrNull() ?: 0f
+                    putExtra("DEBUG_SPEED", fakeSpeed)
+                }
+            }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        }
+
+        sendSpeedButton.setOnClickListener {
+            val newSpeed = manualSpeedInput.text.toString().toFloatOrNull() ?: 0f
+            val intent = Intent(this, HudForegroundService::class.java).apply {
+                action = "UPDATE_DEBUG_SPEED"
+                putExtra("DEBUG_SPEED", newSpeed)
+            }
+            startService(intent)
         }
     }
 

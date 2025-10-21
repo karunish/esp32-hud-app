@@ -35,4 +35,45 @@
         android:layout_above="@id/connectButton"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="16dp" />
+
+    <Switch
+        android:id="@+id/debugModeSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Debug Mode"
+        android:textColor="#FFFFFF"
+        android:layout_above="@id/statusText"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="16dp" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_below="@id/speedText"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="8dp">
+
+        <EditText
+            android:id="@+id/manualSpeedInput"
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:hint="Enter fake speed"
+            android:inputType="numberDecimal"
+            android:visibility="gone"
+            android:textColor="#000000"
+            android:textColorHint="#AAAAAA"
+            android:background="@android:drawable/edit_text" />
+
+        <Button
+            android:id="@+id/sendSpeedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Send"
+            android:visibility="gone"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#00FF00"
+            />
+    </LinearLayout>
+
 </RelativeLayout>

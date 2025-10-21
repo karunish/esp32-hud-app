@@ -24,6 +24,7 @@ import com.google.android.gms.location.Priority
 
 import android.location.Location
 import android.content.pm.PackageManager
+import androidx.annotation.RequiresPermission
 
 import java.io.OutputStream
 import java.util.UUID
@@ -35,17 +36,48 @@ class HudForegroundService : Service() {
     private var outputStream: OutputStream? = null
     private val uuid: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB") // classic SPP UUID
     private val deviceName = "ESP32_HUD" // adjust to your paired device name
-
+    private val handler = android.os.Handler(Looper.getMainLooper())
     private var locationCallback: LocationCallback? = null
+
+    // Add this Runnable implementation
+    private val debugRunnable = object : Runnable {
+        override fun run() {
+            if (debugMode) {
+                // This is where you would put the code that runs periodically in debug mode.
+                // For instance, you could send the speed and broadcast an update.
+                sendSpeedToESP32(debugSpeed)
+                broadcastUpdate("Debug", debugSpeed)
+
+                // Schedule the next run after 1 second
+                handler.postDelayed(this, 1000)
+            }
+        }
+    }
+
+    private var debugMode: Boolean = false
+    private var debugSpeed: Float = 0f
 
     override fun onCreate() {
         super.onCreate()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            "START_HUD" -> startHud()
+            "START_HUD" -> {
+                debugMode = intent.getBooleanExtra("DEBUG_MODE", false)
+                debugSpeed = intent.getFloatExtra("DEBUG_SPEED", 0f)
+                startHud()
+            }
+            "UPDATE_DEBUG_SPEED" -> {
+                // Update the fake speed while service is running
+                debugSpeed = intent.getFloatExtra("DEBUG_SPEED", debugSpeed)
+                Log.i("HUD", "Updated debug speed to $debugSpeed")
+                // Immediately send once so UI/ESP32 reflect the change without waiting
+                sendSpeedToESP32(debugSpeed)
+                broadcastUpdate("Debug", debugSpeed)
+            }
             "STOP_HUD" -> stopSelf()
         }
         return START_STICKY
@@ -53,19 +85,28 @@ class HudForegroundService : Service() {
 
     //>:)
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     private fun startHud() {
         val notification = NotificationCompat.Builder(this, "HUD_CHANNEL")
             .setContentTitle("HUD Running")
-            .setContentText("Sending speed to ESP32")
+            .setContentText(if (debugMode) "Debug mode active" else "Sending speed to ESP32")
             .setSmallIcon(R.drawable.ic_hud)
             .build()
 
         startForeground(1, notification)
 
         connectToESP32()
-        startLocationUpdates()
+
+        if (debugMode) {
+            Log.i("HUD", "Debug mode active, sending fake speed=$debugSpeed")
+            handler.post(debugRunnable)
+            broadcastUpdate("Debug", debugSpeed)
+        } else {
+            startLocationUpdates()
+        }
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     private fun connectToESP32() {
         val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {

@@ -16,12 +16,13 @@ A real-time mirrored heads-up display (HUD) for vehicles, built with Android and
 
 ---
 
-## Requirements
+## Requirements (Which you have to manually enable from settings for now T_T)
 
 - Android 12 or higher (tested on Android 15, One UI 7)
 - ESP32 with [BluetoothSerial](https://github.com/espressif/arduino-esp32/tree/master/libraries/BluetoothSerial) enabled
 - Paired device named `ESP32_HUD`
 - Permissions:
+  - `POST_NOTIFICATIONS`
   - `ACCESS_FINE_LOCATION`
   - `ACCESS_BACKGROUND_LOCATION`
   - `BLUETOOTH_CONNECT`

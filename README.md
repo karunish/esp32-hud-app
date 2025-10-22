@@ -1,7 +1,7 @@
 # ESP32 HUD Android App
 
-A real-time mirrored heads-up display (HUD) for vehicles, built with Android and ESP32. This app uses GPS data from your phone and sends live speed updates over Bluetooth to an ESP32 microcontroller, which displays it on a physical screen — perfect for DIY automotive projects.
-> ⚙️ This app is designed to work hand-in-hand with the ESP32 firmware I’ve developed. Together, they form a complete HUD system: Android handles GPS and Bluetooth, while the ESP32 receives and displays the speed data.
+A real-time mirrored heads-up display (HUD) for vehicles, built with Android and ESP32. This app uses GPS data from your phone and sends live speed updates over Bluetooth to an ESP32 microcontroller, which displays it on a physical screen, perfect for DIY automotive projects.
+> ⚙️ This app is designed to work hand-in-hand with the ESP32 code I’ve developed. Together, they form a complete HUD system: Android handles GPS and Bluetooth, while the ESP32 receives and displays the speed data. Here's the code for the ESP32 (+ ST7735S display)
 
 ---
 

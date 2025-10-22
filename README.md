@@ -38,4 +38,9 @@ A real-time mirrored heads-up display (HUD) for vehicles, built with Android and
    ```cpp
    SerialBT.begin("ESP32_HUD");
    ```
-   **Make sure that your ESP32 display is laterally inverted to form a correct image when displayed on the windshield** 
+   **Make sure that your ESP32 display is laterally inverted to form a correct image when displayed on the windshield**
+
+---
+
+## Downloads
+You can just head over to actions and grab the latest artifact :p

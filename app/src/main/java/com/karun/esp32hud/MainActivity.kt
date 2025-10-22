@@ -32,6 +32,9 @@ class MainActivity : AppCompatActivity() {
     private val REQUEST_PERMISSIONS = 1001
     private var isDebugMode = false
 
+    private lateinit var manualLimitInput: EditText
+    private lateinit var sendLimitButton: Button
+
     private val REQUIRED_PERMISSIONS = mutableListOf(
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -56,6 +59,36 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun requestNotificationPermissionAndSendTest() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                // Ask the user for permission
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    2001
+                )
+            } else {
+                // Already granted → send a one-time notification
+                sendTestNotification()
+            }
+        } else {
+            sendTestNotification()
+        }
+    }
+
+    private fun sendTestNotification() {
+        val builder = androidx.core.app.NotificationCompat.Builder(this, "HUD_CHANNEL")
+            .setSmallIcon(R.drawable.ic_hud) // use your app icon
+            .setContentTitle("HUD Ready")
+            .setContentText("Notifications are active")
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW)
+
+        val nm = getSystemService(NotificationManager::class.java)
+        nm.notify(1001, builder.build())
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -65,6 +98,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         speedText = findViewById(R.id.speedText)
+        manualLimitInput = findViewById(R.id.manualLimitInput)
+        sendLimitButton = findViewById(R.id.sendLimitButton)
         statusText = findViewById(R.id.statusText)
         connectButton = findViewById(R.id.connectButton)
         manualSpeedInput = findViewById(R.id.manualSpeedInput)
@@ -82,6 +117,9 @@ class MainActivity : AppCompatActivity() {
             nm.createNotificationChannel(channel)
         }
 
+        // After creating the HUD_CHANNEL
+        requestNotificationPermissionAndSendTest()
+
         // Prompt user to disable battery optimizations
         val pm = getSystemService(PowerManager::class.java)
         val pkg = packageName
@@ -98,6 +136,8 @@ class MainActivity : AppCompatActivity() {
             val visibility = if (checked) View.VISIBLE else View.GONE
             manualSpeedInput.visibility = visibility
             sendSpeedButton.visibility = visibility
+            manualLimitInput.visibility = visibility
+            sendLimitButton.visibility = visibility
         }
 
         connectButton.setOnClickListener {
@@ -124,6 +164,16 @@ class MainActivity : AppCompatActivity() {
             }
             startService(intent)
         }
+
+        sendLimitButton.setOnClickListener {
+            val newLimit = manualLimitInput.text.toString().toIntOrNull() ?: -1
+            val intent = Intent(this, HudForegroundService::class.java).apply {
+                action = "UPDATE_DEBUG_LIMIT"
+                putExtra("DEBUG_LIMIT", newLimit)
+            }
+            startService(intent)
+        }
+
     }
 
     override fun onResume() {

@@ -72,8 +72,28 @@
             android:text="Send"
             android:visibility="gone"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#00FF00"
-            />
+            android:backgroundTint="#00FF00" />
+
+        <EditText
+            android:id="@+id/manualLimitInput"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hint="Debug Limit (km/h)"
+            android:inputType="number"
+            android:visibility="gone"
+            android:textColor="#000000"
+            android:textColorHint="#AAAAAA"
+            android:background="@android:drawable/edit_text" />
+
+        <Button
+            android:id="@+id/sendLimitButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Send Limit"
+            android:visibility="gone"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#00FF00" />
+
     </LinearLayout>
 
 </RelativeLayout>

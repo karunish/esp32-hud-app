@@ -29,6 +29,12 @@ import androidx.annotation.RequiresPermission
 import java.io.OutputStream
 import java.util.UUID
 
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+
+
 class HudForegroundService : Service() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -39,7 +45,11 @@ class HudForegroundService : Service() {
     private val handler = android.os.Handler(Looper.getMainLooper())
     private var locationCallback: LocationCallback? = null
 
-    // Add this Runnable implementation
+    private var debugLimitMode: Boolean = false
+    private var debugLimit: Int = -1
+
+
+    private var lastLimitFetch: Long = 0
     private val debugRunnable = object : Runnable {
         override fun run() {
             if (debugMode) {
@@ -68,25 +78,35 @@ class HudForegroundService : Service() {
             "START_HUD" -> {
                 debugMode = intent.getBooleanExtra("DEBUG_MODE", false)
                 debugSpeed = intent.getFloatExtra("DEBUG_SPEED", 0f)
+                debugLimitMode = intent.getBooleanExtra("DEBUG_LIMIT_MODE", false)
+                debugLimit = intent.getIntExtra("DEBUG_LIMIT", -1)
                 startHud()
             }
             "UPDATE_DEBUG_SPEED" -> {
-                // Update the fake speed while service is running
                 debugSpeed = intent.getFloatExtra("DEBUG_SPEED", debugSpeed)
                 Log.i("HUD", "Updated debug speed to $debugSpeed")
-                // Immediately send once so UI/ESP32 reflect the change without waiting
                 sendSpeedToESP32(debugSpeed)
                 broadcastUpdate("Debug", debugSpeed)
+            }
+            "UPDATE_DEBUG_LIMIT" -> {
+                debugLimit = intent.getIntExtra("DEBUG_LIMIT", debugLimit)
+                if (debugLimit > 0) {
+                    sendSpeedLimitToESP32(debugLimit)
+                    Log.i("HUD", "Updated debug limit to $debugLimit")
+                }
             }
             "STOP_HUD" -> stopSelf()
         }
         return START_STICKY
     }
-
-    //>:)
-
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     private fun startHud() {
+        if (debugLimitMode && debugLimit > 0) {
+            sendSpeedLimitToESP32(debugLimit)
+            Log.i("HUD", "Debug limit mode active, sending limit=$debugLimit")
+        }
+
+
         val notification = NotificationCompat.Builder(this, "HUD_CHANNEL")
             .setContentTitle("HUD Running")
             .setContentText(if (debugMode) "Debug mode active" else "Sending speed to ESP32")
@@ -154,6 +174,12 @@ class HudForegroundService : Service() {
                 val speedKph = location.speed * 3.6f
                 sendSpeedToESP32(speedKph)
                 broadcastUpdate("Connected", speedKph)
+
+                // Fetch speed limit every ~10 seconds
+                if (System.currentTimeMillis() - lastLimitFetch > 10000) {
+                    lastLimitFetch = System.currentTimeMillis()
+                    fetchSpeedLimit(location.latitude, location.longitude)
+                }
             }
         }
 
@@ -189,4 +215,52 @@ class HudForegroundService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun sendSpeedLimitToESP32(limit: Int) {
+        try {
+            outputStream?.write("LIMIT:$limit\n".toByteArray())
+            Log.i("HUD", "Sent speed limit $limit to ESP32")
+        } catch (e: Exception) {
+            Log.e("HUD", "Failed to send speed limit: ${e.message}")
+        }
+    }
+
+    private fun fetchSpeedLimit(lat: Double, lon: Double) {
+        val url = "https://overpass-api.de/api/interpreter"
+        val query = """
+        [out:json];
+        way(around:30,$lat,$lon)["maxspeed"];
+        out tags;
+    """.trimIndent()
+
+        val client = okhttp3.OkHttpClient()
+        val body = query.toRequestBody("application/x-www-form-urlencoded".toMediaType())
+        val request = okhttp3.Request.Builder()
+            .url(url)
+            .post(body)
+            .build()
+
+        client.newCall(request).enqueue(object : okhttp3.Callback {
+            override fun onFailure(call: okhttp3.Call, e: java.io.IOException) {
+                Log.e("HUD", "Speed limit fetch failed: ${e.message}")
+            }
+
+            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                response.use {
+                    if (!it.isSuccessful) return
+                    val json = org.json.JSONObject(it.body!!.string())
+                    val elements = json.optJSONArray("elements")
+                    if (elements != null && elements.length() > 0) {
+                        val tags = elements.getJSONObject(0).optJSONObject("tags")
+                        val maxspeed = tags?.optString("maxspeed")
+                        val limit = maxspeed?.toIntOrNull()
+                        if (limit != null) {
+                            sendSpeedLimitToESP32(limit)
+                        }
+                    }
+                }
+            }
+        })
+    }
+
 }

@@ -21,6 +21,9 @@ A real-time mirrored heads-up display (HUD) for vehicles, built with Android and
 - **Live status UI**: shows current speed, connection state, and debug info.
 > Currently, the GPS speed shown on the app, and the status text of the state of connection with the ESP32 seems to be broken. I'm looking at how to fix it.
 
+<img width="350" height="800" alt="image" src="https://github.com/user-attachments/assets/56e24b4d-dea6-4cab-a055-fbea1ea056bb" />
+<img width="600" height="290" alt="image" src="https://github.com/user-attachments/assets/8a677121-4e2a-4970-a39c-8342920f4387" />
+
 ---
 
 ## Requirements (Which you have to manually enable from settings for now T_T)

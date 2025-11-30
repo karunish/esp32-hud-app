@@ -45,7 +45,7 @@ A real-time mirrored heads-up display (HUD) for vehicles, built with Android and
 ## Setup
 
 1. **Pair your ESP32** with your Android device via Bluetooth settings beforehand.
-2. **Flash your ESP32** with this sketch or a sketch that uses:
+2. **Flash your ESP32** with [this](https://github.com/karunish/esp32-hud) sketch or a sketch that uses:
    ```cpp
    SerialBT.begin("ESP32_HUD");
    ```
